@@ -185,11 +185,15 @@ fn save_persisted_items(items: &[DownloadItem]) -> std::io::Result<()> {
 }
 
 fn dirs_downloads() -> Option<PathBuf> {
-    std::env::var_os("USERPROFILE").map(|prof| PathBuf::from(prof).join("Downloads"))
+    std::env::var_os("USERPROFILE")
+        .or_else(|| std::env::var_os("HOME"))
+        .map(|prof| PathBuf::from(prof).join("Downloads"))
 }
 
 fn dirs_data() -> Option<PathBuf> {
     std::env::var_os("APPDATA")
         .map(PathBuf::from)
+        .or_else(|| std::env::var_os("XDG_CONFIG_HOME").map(PathBuf::from))
+        .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".config")))
         .or_else(|| std::env::var_os("USERPROFILE").map(PathBuf::from))
 }

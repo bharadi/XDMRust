@@ -1,11 +1,16 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, OnceLock};
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
+
+#[cfg(windows)]
 use windows_sys::Win32::Foundation::{HWND, LPARAM, LRESULT, POINT, WPARAM};
+#[cfg(windows)]
 use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
+#[cfg(windows)]
 use windows_sys::Win32::UI::Shell::{
     Shell_NotifyIconW, NIF_ICON, NIF_MESSAGE, NIF_TIP, NIM_ADD, NIM_DELETE, NOTIFYICONDATAW,
 };
+#[cfg(windows)]
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     AppendMenuW, CreatePopupMenu, CreateWindowExW, DefWindowProcW, DestroyMenu, DestroyWindow,
     DispatchMessageW, FindWindowW, GetCursorPos, GetMessageW, LoadIconW, PostQuitMessage,
@@ -32,10 +37,12 @@ pub fn set_egui_context(ctx: eframe::egui::Context) {
 
 pub const APP_TITLE: &str = "XDM-Rust Download Manager v1.0";
 
+#[cfg(windows)]
 pub fn to_wide(s: &str) -> Vec<u16> {
     s.encode_utf16().chain(std::iter::once(0)).collect()
 }
 
+#[cfg(windows)]
 pub fn restore_main_window() {
     unsafe {
         let title = to_wide(APP_TITLE);
@@ -55,6 +62,14 @@ pub fn restore_main_window() {
     }
 }
 
+#[cfg(not(windows))]
+pub fn restore_main_window() {
+    if let Some(ctx) = EGUI_CTX.get() {
+        ctx.request_repaint();
+    }
+}
+
+#[cfg(windows)]
 unsafe extern "system" fn tray_wnd_proc(
     hwnd: HWND,
     msg: u32,
@@ -169,6 +184,7 @@ pub struct TrayManager {
     _shutdown: Arc<AtomicBool>,
 }
 
+#[cfg(windows)]
 impl TrayManager {
     pub fn start() -> (Self, UnboundedReceiver<TrayEvent>) {
         let (tx, rx) = unbounded_channel();
@@ -236,6 +252,15 @@ impl TrayManager {
             DestroyWindow(hwnd);
         });
 
+        (Self { _shutdown: shutdown }, rx)
+    }
+}
+
+#[cfg(not(windows))]
+impl TrayManager {
+    pub fn start() -> (Self, UnboundedReceiver<TrayEvent>) {
+        let (_tx, rx) = unbounded_channel();
+        let shutdown = Arc::new(AtomicBool::new(false));
         (Self { _shutdown: shutdown }, rx)
     }
 }

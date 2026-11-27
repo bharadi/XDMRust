@@ -49,22 +49,20 @@ xdm_rust/
 ├── build.rs           # Cargo build script compiling Windows PE resources
 ├── Cargo.toml         # Rust crate manifest & dependencies
 ├── Cargo.lock         # Locked dependency graph
-├── installer.iss      # Inno Setup 6 installer script
+├── installer.iss      # Inno Setup 6 installer script (Windows)
+├── xdm-rust.desktop   # Linux desktop entry specification
+├── AppRun             # Linux AppImage runtime launch script
+├── build-appimage.sh  # Linux AppImage automated packaging script
+├── .github/workflows/ # GitHub Actions CI/CD (AppImage automated build)
 ├── TERMS_OF_USE.txt   # Terms of Use & Disclaimer document
 └── README.md          # Project documentation
 ```
 
 ---
 
-## 🛠️ Rebuilding from Source
+## 🛠️ Building & Packaging
 
-### Prerequisites
-- [Rust](https://rustup.rs/) (stable-x86_64-pc-windows-gnu or msvc)
-- MinGW / GCC (for GNU toolchain) or MSVC C++ Build Tools
-- [Inno Setup 6](https://jrsoftware.org/isinfo.php) (optional, for compiling setup installer)
-- Windows 10/11 SDK (optional, for `makeappx.exe` MSIX packaging)
-
-### Build Commands
+### On Windows
 ```powershell
 # 1. Compile optimized release binary
 cargo build --release
@@ -72,6 +70,21 @@ cargo build --release
 # 2. Package into Windows Installer (Inno Setup)
 & "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" installer.iss
 ```
+
+### On Linux (AppImage Generation)
+```bash
+# 1. Install prerequisites (Ubuntu/Debian)
+sudo apt update && sudo apt install -y libgtk-3-dev libxcb-render0-dev libssl-dev
+
+# 2. Build the universal AppImage
+chmod +x build-appimage.sh AppRun
+./build-appimage.sh
+
+# Output: XDM-Rust-1.0.0-x86_64.AppImage
+```
+
+### Automated GitHub Actions
+Pushing to your GitHub repository triggers `.github/workflows/build-appimage.yml`, which automatically builds `XDM-Rust-1.0.0-x86_64.AppImage` on an Ubuntu runner and attaches it as an artifact and GitHub Release.
 
 ---
 

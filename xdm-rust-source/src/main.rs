@@ -179,6 +179,7 @@ impl XdmApp {
                 UiAction::MinimizeToTray => {
                     self.is_hidden_to_tray = true;
                     // Hide directly via Win32 so Windows hides the taskbar button immediately
+                    #[cfg(windows)]
                     unsafe {
                         let title = tray::to_wide(tray::APP_TITLE);
                         let hwnd = windows_sys::Win32::UI::WindowsAndMessaging::FindWindowW(std::ptr::null(), title.as_ptr());
@@ -252,6 +253,7 @@ impl eframe::App for XdmApp {
         let is_minimized = ctx.input(|i| i.viewport().minimized.unwrap_or(false));
         if is_minimized && !self.is_hidden_to_tray {
             self.is_hidden_to_tray = true;
+            #[cfg(windows)]
             unsafe {
                 let title = tray::to_wide(tray::APP_TITLE);
                 let hwnd = windows_sys::Win32::UI::WindowsAndMessaging::FindWindowW(std::ptr::null(), title.as_ptr());

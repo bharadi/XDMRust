@@ -16,6 +16,7 @@ reqwest = { version = "0.12", default-features = false, features = ["default-tls
 futures-util = "0.3"
 
 # Windows Native System Tray & Win32 Integration
+[target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.52.0", features = [
     "Win32_UI_Shell",
     "Win32_UI_WindowsAndMessaging",

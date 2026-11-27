@@ -17,6 +17,7 @@ pub struct NewDownloadDialog {
 impl Default for NewDownloadDialog {
     fn default() -> Self {
         let default_dir = std::env::var_os("USERPROFILE")
+            .or_else(|| std::env::var_os("HOME"))
             .map(|p| PathBuf::from(p).join("Downloads"))
             .unwrap_or_else(|| PathBuf::from("Downloads"));
 
