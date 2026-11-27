@@ -46,6 +46,7 @@ jobs:
             libssl-dev \
             libasound2-dev \
             libfontconfig1-dev \
+            libfuse2 \
             file \
             curl \
             wget
