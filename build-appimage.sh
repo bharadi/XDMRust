@@ -34,7 +34,7 @@ if ! command -v appimagetool &> /dev/null; then
         curl -fsSL https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage -o appimagetool-x86_64.AppImage
         chmod +x appimagetool-x86_64.AppImage
     fi
-    ARCH=x86_64 ./appimagetool-x86_64.AppImage "$APPDIR" XDM-Rust-1.0.0-x86_64.AppImage
+    ARCH=x86_64 ./appimagetool-x86_64.AppImage --appimage-extract-and-run "$APPDIR" XDM-Rust-1.0.0-x86_64.AppImage
 else
     ARCH=x86_64 appimagetool "$APPDIR" XDM-Rust-1.0.0-x86_64.AppImage
 fi
