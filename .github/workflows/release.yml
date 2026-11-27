@@ -56,7 +56,9 @@ jobs:
           cd $WORK_DIR
           chmod +x AppRun build-appimage.sh
           ./build-appimage.sh
-          cp XDM-Rust-1.0.0-x86_64.AppImage $GITHUB_WORKSPACE/
+          if [ "$WORK_DIR" != "." ]; then
+            cp XDM-Rust-1.0.0-x86_64.AppImage "$GITHUB_WORKSPACE/"
+          fi
 
       - name: Upload Linux AppImage Artifact
         uses: actions/upload-artifact@v4
