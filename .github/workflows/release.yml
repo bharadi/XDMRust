@@ -1,0 +1,176 @@
+name: Release XDM-Rust (Linux AppImage & Windows)
+
+on:
+  push:
+    branches: [ "main", "master" ]
+    tags: [ "v*" ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  # -------------------------------------------------------------
+  # 1. LINUX BUILD: Universal AppImage (.AppImage)
+  # -------------------------------------------------------------
+  build-linux-appimage:
+    name: Build Linux Universal AppImage
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Locate Project Root
+        run: |
+          if [ -f "Cargo.toml" ]; then
+            echo "WORK_DIR=." >> $GITHUB_ENV
+          elif [ -f "xdm_rust/Cargo.toml" ]; then
+            echo "WORK_DIR=xdm_rust" >> $GITHUB_ENV
+          else
+            echo "ERROR: Cargo.toml not found!" && ls -la && exit 1
+          fi
+
+      - name: Install Rust Stable Toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Linux GUI & System Libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgtk-3-dev \
+            libxcb-render0-dev \
+            libxcb-shape0-dev \
+            libxcb-xfixes0-dev \
+            libxkbcommon-dev \
+            libssl-dev \
+            libasound2-dev \
+            libfontconfig1-dev \
+            file \
+            curl \
+            wget
+
+      - name: Make Scripts Executable & Build AppImage
+        run: |
+          cd $WORK_DIR
+          chmod +x AppRun build-appimage.sh
+          ./build-appimage.sh
+          cp XDM-Rust-1.0.0-x86_64.AppImage $GITHUB_WORKSPACE/
+
+      - name: Upload Linux AppImage Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: XDM-Rust-1.0.0-x86_64.AppImage
+          path: XDM-Rust-1.0.0-x86_64.AppImage
+
+  # -------------------------------------------------------------
+  # 2. WINDOWS BUILD: Setup Installer & Portable Exe
+  # -------------------------------------------------------------
+  build-windows:
+    name: Build Windows 11 Installer & Exe
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Locate Project Root
+        run: |
+          if (Test-Path "Cargo.toml") {
+            echo "WORK_DIR=." >> $env:GITHUB_ENV
+          } elseif (Test-Path "xdm_rust\Cargo.toml") {
+            echo "WORK_DIR=xdm_rust" >> $env:GITHUB_ENV
+          } else {
+            Write-Error "Cargo.toml not found!"
+            Get-ChildItem
+            exit 1
+          }
+        shell: powershell
+
+      - name: Install Rust Stable Toolchain (GNU)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-gnu
+
+      - name: Compile Windows Release Binary
+        run: |
+          cd $WORK_DIR
+          cargo build --release --target x86_64-pc-windows-gnu
+          mkdir -p target/release
+          cp target/x86_64-pc-windows-gnu/release/xdm-rust.exe target/release/xdm-rust.exe
+        shell: bash
+
+      - name: Compile Inno Setup Installer
+        run: |
+          cd $env:WORK_DIR
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
+          cp Output\XDM-Rust-Setup-v1.0.0.exe $env:GITHUB_WORKSPACE\
+          cp target\release\xdm-rust.exe $env:GITHUB_WORKSPACE\
+        shell: powershell
+
+      - name: Upload Windows Setup Installer Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: XDM-Rust-Setup-v1.0.0.exe
+          path: XDM-Rust-Setup-v1.0.0.exe
+
+      - name: Upload Windows Portable Exe Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: xdm-rust.exe
+          path: xdm-rust.exe
+
+  # -------------------------------------------------------------
+  # 3. PUBLISH GITHUB RELEASE (When Tag v* is pushed or manual)
+  # -------------------------------------------------------------
+  publish-release:
+    name: Publish GitHub Release
+    needs: [build-linux-appimage, build-windows]
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Linux AppImage Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: XDM-Rust-1.0.0-x86_64.AppImage
+          path: release_assets/
+
+      - name: Download Windows Setup Installer Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: XDM-Rust-Setup-v1.0.0.exe
+          path: release_assets/
+
+      - name: Download Windows Portable Exe Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: xdm-rust.exe
+          path: release_assets/
+
+      - name: Create / Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release_assets/XDM-Rust-1.0.0-x86_64.AppImage
+            release_assets/XDM-Rust-Setup-v1.0.0.exe
+            release_assets/xdm-rust.exe
+          name: XDM-Rust Download Manager v1.0
+          body: |
+            ## ⚡ XDM-Rust Download Manager v1.0
+
+            High-performance, multi-segmented download manager written in pure Rust for Windows and Linux.
+
+            ### 📦 Release Assets
+            - **Linux (Universal):** `XDM-Rust-1.0.0-x86_64.AppImage` (Ubuntu, Fedora, Debian, Arch, Mint, openSUSE)
+              - Run: `chmod +x XDM-Rust-1.0.0-x86_64.AppImage && ./XDM-Rust-1.0.0-x86_64.AppImage`
+            - **Windows (Installer):** `XDM-Rust-Setup-v1.0.0.exe` (Windows 11 / 10 64-bit setup with desktop & start menu shortcuts)
+            - **Windows (Portable):** `xdm-rust.exe` (Single standalone executable, no installation required)
+
+            ### 👨‍💻 Maintainers
+            - **Dr. Vinayak Ashok Bharadi** (`vinu.bharadi@gmail.com`)
+            - **Vinaya Gaurang** (`vinayagaurang@zohomail.in`)
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
